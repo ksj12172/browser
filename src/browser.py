@@ -42,8 +42,11 @@ class URL:
         # 호스트에 연결 - 지정한 호스트와 포트로 TCP 연결 수립
         s.connect((self.host, self.port))
 
-        request = f"GET {self.path} HTTP/1.0\r\n"
+        request = f"GET {self.path} HTTP/1.1\r\n"
         request += f"Host: {self.host}\r\n"
+        # HTTP/1.1에서는 기본적으로 지속 연결(keep-alive)을 사용한다. Connection: close 헤더를 보내면 서버에게 응답 후 연결을 닫으라고 알려준다.
+        request += "Connection: close\r\n"
+        request += "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36\r\n"
         request += "\r\n"
 
         # 서버에 요청 전송
