@@ -9,17 +9,24 @@ class URL:
         self.scheme, url = url.split("://", 1)
         # scheme이 반드시 http여야 한다. 
         # 조건이 참이면 아무 일도 일어나지 않고, 거짓이면 AssertionError가 발생한다.
-        assert self.scheme in ["http", "https"]
+        assert self.scheme in ["http", "https", "file"]
 
-        if "/" not in url:
-            url = url + "/"
-        self.host, url = url.split("/", 1)
-        self.path = "/" + url
+        if self.scheme == "file":
+            # file 스킴은 호스트가 없고 경로만 있다
+            # file://path/to/file 형식
+            self.host = None
+            self.port = None
+            self.path = url
+        else:
+            if "/" not in url:
+                url = url + "/"
+            self.host, url = url.split("/", 1)
+            self.path = "/" + url
 
-        if self.scheme == 'http':
-            self.port = 80
-        elif self.scheme == 'https':
-            self.port = 443
+            if self.scheme == 'http':
+                self.port = 80
+            elif self.scheme == 'https':
+                self.port = 443
 
 
 
@@ -27,6 +34,10 @@ class URL:
     # 웹페이지 다운로드하기
     # 소켓을 통해 다른 컴퓨터와 통신한다
     def request(self):
+        if self.scheme == "file":
+            with open(self.path, "r", encoding="utf8") as f:
+                return f.read()
+        
         # 소켓 생성
         s = socket.socket(
             family=socket.AF_INET, # 다른 컴퓨터를 찾는 방법을 알려주는 주소 패밀리(address family)
