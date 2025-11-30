@@ -1,4 +1,5 @@
 import socket
+import ssl
 
 class URL:
     def __init__(self, url):
@@ -8,12 +9,19 @@ class URL:
         self.scheme, url = url.split("://", 1)
         # scheme이 반드시 http여야 한다. 
         # 조건이 참이면 아무 일도 일어나지 않고, 거짓이면 AssertionError가 발생한다.
-        assert self.scheme == "http"
+        assert self.scheme in ["http", "https"]
 
         if "/" not in url:
             url = url + "/"
         self.host, url = url.split("/", 1)
         self.path = "/" + url
+
+        if self.scheme == 'http':
+            self.port = 80
+        elif self.scheme == 'https':
+            self.port = 443
+
+
 
     # 파이썬의 메서드에는 항상 self 매개변수를 작성해야 한다.
     # 웹페이지 다운로드하기
@@ -26,8 +34,13 @@ class URL:
             proto=socket.IPPROTO_TCP # 통신 프로토콜을 알려주는 프로토콜 번호(protocol number), TCP 프로토콜 사용
         )
 
+        if self.scheme == 'https':
+            ctx = ssl.create_default_context()
+            # server_hostname: 하나의 IP 주소에서 여러 개의 HTTPS 웹사이트를 호스팅할 수 있다. 서버가 올바른 SSL 인증서를 선택하고 인증서 검증 시 호스트명 확인에 사용된다.
+            s = ctx.wrap_socket(s, server_hostname=self.host)
+
         # 호스트에 연결 - 지정한 호스트와 포트로 TCP 연결 수립
-        s.connect((self.host, 80))
+        s.connect((self.host, self.port))
 
         request = f"GET {self.path} HTTP/1.0\r\n"
         request += f"Host: {self.host}\r\n"
