@@ -4,3 +4,7 @@
 
 src/browser.py 실행하는 법:  
 python3 src/browser.py http://browser.engineering/http.html
+
+data: 스킴으로 HTML 콘텐츠를 URL에 직접 담을 수 있다.  
+data:[mediatype][;base64],<data> 형식  
+data:text/html,Hello world!

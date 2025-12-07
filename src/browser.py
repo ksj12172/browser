@@ -1,3 +1,4 @@
+import base64
 import socket
 import ssl
 
@@ -5,6 +6,13 @@ class URL:
     def __init__(self, url):
         # self.를 붙이면 인스턴스 변수가 된다.
         # url은 __init__ 메서드가 끝나면 사라진다
+
+        # data: 스킴은 ://를 사용하지 않으므로 별도 처리
+        if url.startswith("data:"):
+            self.scheme = "data"
+            self.data = url[5:]
+            return
+
         # splits(s, n) 메서드는 문자열에서 s가 처음 n번 등장한 지점을 기준으로 분할한다.
         self.scheme, url = url.split("://", 1)
         # scheme이 반드시 http여야 한다. 
@@ -34,6 +42,16 @@ class URL:
     # 웹페이지 다운로드하기
     # 소켓을 통해 다른 컴퓨터와 통신한다
     def request(self):
+        if self.scheme == "data":
+            # data:[mediatype][;base64],<data> 형식
+            metadata, content = self.data.split(",", 1)
+
+            # base64 디코딩
+            if metadata.endswith(";base64"):
+                return base64.b64decode(content).decode("utf8")
+            else:
+                return content
+
         if self.scheme == "file":
             with open(self.path, "r", encoding="utf8") as f:
                 return f.read()
