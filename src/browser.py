@@ -134,6 +134,8 @@ class URL:
         statusline = response.readline()
         version, status, explanation = statusline.split(" ", 2)
 
+        status_code = int(status)
+
         headers = {}
 
         while True:
@@ -145,10 +147,22 @@ class URL:
             headers[header.casefold()] = value.strip()
 
         print('headers: ',headers)
+        print('status_code: ',status_code)
 
-        if headers.get("connection", "").lower() == "close":
-            s.close()
-            del self.connection_pool[conn_key]
+        if 300 <= status_code < 400 and "location" in headers:
+          check_connection_close(headers, conn_key, self.connection_pool, s)
+
+          # Location 헤더의 URL로 재요청
+          redirect_url = headers["location"]
+
+          if redirect_url.startswith("/"):
+            redirect_url = f"{self.scheme}://{self.host}{redirect_url}"
+          elif not redirect_url.startswith(("http://", "https://")):
+            redirect_url = f"{self.scheme}://{self.host}/{self.path.rsplit('/', 1)[0]}/{redirect_url}"
+
+          return URL(redirect_url).request()
+
+        check_connection_close(headers, conn_key, self.connection_pool, s)
 
         # Content-Length 기반 읽기
         # Conent-Length 헤더 필수, 서버가 본문 크기를 명시해야 함
@@ -229,6 +243,12 @@ def read_until_crlf(sock):
             # CRLF 제거하고 문자열로 반환
             return line[:-2].decode("utf8")
     return line.decode("utf8")
+
+def check_connection_close(headers, conn_key, connection_pool, socket):
+  if headers.get("connection", "").lower() == "close":
+    socket.close()
+    del connection_pool[conn_key]
+
 
 # 스크립트 실행 시, 실행
 if __name__ == "__main__":
