@@ -1,4 +1,5 @@
 import base64
+import html
 import socket
 import ssl
 
@@ -50,7 +51,8 @@ class URL:
             if metadata.endswith(";base64"):
                 return base64.b64decode(content).decode("utf8")
             else:
-                return content
+                # html 엔티티 디코딩(&lt; -> <, &gt; -> > 등), 안전하게 인코딩된 문자를 원래 문자로 되돌린다
+                return html.unescape(content)
 
         if self.scheme == "file":
             with open(self.path, "r", encoding="utf8") as f:
