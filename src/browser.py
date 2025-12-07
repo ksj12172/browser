@@ -8,6 +8,11 @@ class URL:
         # self.를 붙이면 인스턴스 변수가 된다.
         # url은 __init__ 메서드가 끝나면 사라진다
 
+        if url.startswith("view-source:"):
+            self.scheme = "view-source"
+            self.inner_url = URL(url[12:])
+            return
+
         # data: 스킴은 ://를 사용하지 않으므로 별도 처리
         if url.startswith("data:"):
             self.scheme = "data"
@@ -43,6 +48,9 @@ class URL:
     # 웹페이지 다운로드하기
     # 소켓을 통해 다른 컴퓨터와 통신한다
     def request(self):
+        if self.scheme == "view-source":
+            return self.inner_url.request()
+
         if self.scheme == "data":
             # data:[mediatype][;base64],<data> 형식
             metadata, content = self.data.split(",", 1)
@@ -91,8 +99,14 @@ class URL:
 
         # 데이터가 도착할 때마다 수집하는 루프 작성
         # 파이썬은 makefile이라는 헬퍼 함수 사용
-        # 서버로부터 받은 모든 바이트가 포함된 파일 형식의 객체 반환
+        # 소켓을 파일처럼 다룰 수 있는 객체로 감싸준다 (서버로부터 받은 모든 바이트가 포함된 파일 형식의 객체 반환)
         # 바이트를 utf8 인코딩을 사용하는 문자열로 변환하라고 지시, 한국에서는 euc-kr과 같은 인코딩의 지원이 필요할 수 있다
+        # response 객체는 내부적으로 버퍼를 가지고 있고, readline()을 호출할 때마다
+        # (1) 버퍼에서 개행 문자(\r\n)까지 읽어서 반환
+        # (2) 내부 포인터를 다음 위치로 이동
+        # (3) 버퍼가 비어있으면 소켓에서 더 읽어옴
+        # JavaScript next(): Iterator 프로토콜을 따르며, {value, done} 객체 반환
+        # Python readline(): 그냥 다음 줄을 문자열로 반환, 끝에 도달하면 빈 문자열 "" 반환, 자바스크립트 ReadableStream의 reader 같은 느낌
         response = s.makefile("r", encoding="utf8", newline="\r\n")
 
         # 첫 번째 줄은 상태
@@ -135,7 +149,10 @@ def show(body):
         
 def load(url):
     body = url.request()
-    show(body)
+    if hasattr(url, 'scheme') and url.scheme == "view-source":
+        print(body) # 태그 등 소스 코드 그대로 보여줌
+    else:
+        show(body) # textContent 같은 컨텐츠만 보여줌
 
 # 스크립트 실행 시, 실행
 if __name__ == "__main__":
